@@ -2,107 +2,218 @@
 
 Tracks the commits in a [git](http://git-scm.com/) repository.
 
+_This resource is included in the Concourse tarball. It can be overriden by
+redefining it in the `resource_types` section of your pipeline._
+
 ## Source Configuration
 
-* `uri`: *Required.* The location of the repository.
+<table>
+<thead>
+  <tr>
+    <th>Field Name</th>
+    <th>Description</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><code>uri</code> <em>(Required)</em></td>
+    <td>
+      The location of the repository. Can be a SSH or HTTP(S) URI.
+    </td>
+  </tr>
+  <tr>
+    <td><code>branch</code></td>
+    <td>
+      The branch to track. This is *optional* if the resource is only used in `get`
+      steps; however, it is *required* when used in a `put` step. If unset for `get`,
+      the repository's default branch is used; usually `master` but [could be
+      different](https://help.github.com/articles/setting-the-default-branch/).
+    </td>
+  </tr>
+  <tr>
+    <td><code>api_token</code> <em>(Optional)</em></td>
+    <td>
+        API token for auth<br>
+        Example:
+        <pre lang="yaml">
+api_token: ke9j1290fjqaw9rj12oijvo8bnakd901223
+        </pre>
+    </td>
+  </tr>
+  <tr>
+    <td><code>private_key</code> <em>(Optional)</em></td>
+    <td>
+        Private key to use when pulling/pushing.
+        Example:
+        <pre lang="yaml">
+private_key: |
+  -----BEGIN PRIVATE KEY-----
+  MIICXgIBAAKBgQDfDOx3ah4y48Zg7Q3356vFP343Czsbaaj8XO5HbY4FflPP2Ph8
+  ...
+  +owO5pXqD/qLWDCmnEBVAkEA6RIezo0y1PSXrKVvRa5xoSkmVh7HZCtZ7HcNUc6n
+  z94wM/gJmgOuXVcfmdmwmkMfHYqX8c0gCXVtasXiWGNuNg==
+  -----END PRIVATE KEY-----
+        </pre>
+    </td>
+  </tr>
+  <tr>
+    <td><code>private_key_user</code> <em>(Optional)</em></td>
+    <td>
+      Enables setting User in the ssh config.
+    </td>
+  </tr>
+  <tr>
+    <td><code>private_key_passphrase</code> <em>(Optional)</em></td>
+    <td>
+      To unlock <code>private_key</code> if it is protected by a passphrase.
+    </td>
+  </tr>
+  <tr>
+    <td><code>forward_agent</code> <em>(Optional)</em></td>
+    <td>
+      Enables ForwardAgent SSH option when set to true. Useful when using proxy/jump hosts. Defaults to false.
+    </td>
+  </tr>
+  <tr>
+    <td><code>username</code> <em>(Optional)</em></td>
+    <td>
+      Username for HTTP(S) auth when pulling/pushing. This is needed when only
+      HTTP/HTTPS protocol for git is available (which does not support private key
+      auth) and auth is required.
+    </td>
+  </tr>
+  <tr>
+    <td><code>password</code> <em>(Optional)</em></td>
+    <td>
+      Password for HTTP(S) auth when pulling/pushing.
+    </td>
+  </tr>
+  <tr>
+    <td><code>paths</code> <em>(Optional)</em></td>
+    <td>
+      If specified (as a list of glob patterns), only changes to the specified files
+      will yield new versions from <code>check</code>.
+    </td>
+  </tr>
+  <tr>
+    <td><code>ignore_paths</code> <em>(Optional)</em></td>
+    <td>
+      The inverse of <code>paths</code>; changes to the specified files are ignored.
 
-* `branch`: The branch to track. This is *optional* if the resource is
-   only used in `get` steps; however, it is *required* when used in a `put` step. If unset for `get`, the repository's default branch is used; usually `master` but [could be different](https://help.github.com/articles/setting-the-default-branch/).
+      Note that if you want to push commits that change these files via a
+      <code>put</code>, the commit will still be "detected", as [`check` and
+      `put` both introduce
+      versions](https://github.com/concourse/concourse/issues/534). To avoid
+      this you should define a second resource that you use for commits that
+      change files that you don't want to feed back into your pipeline - think
+      of one as read-only (with <code>ignore_paths</code>) and one as
+      write-only (which shouldn't need it).
+    </td>
+  </tr>
+  <tr>
+    <td><code>skip_ssl_verification</code> <em>(Optional)</em></td>
+    <td>
+      Skips git ssl verification by exporting <code>GIT_SSL_NO_VERIFY=true</code>.
+    </td>
+  </tr>
+  <tr>
+    <td><code>tag_filter</code> <em>(Optional)</em></td>
+    <td>
+      If specified, the resource will only detect commits that have a tag
+      matching the expression that have been made against the
+      <code>branch</code>. Patterns are
+      [glob(7)](http://man7.org/linux/man-pages/man7/glob.7.html) compatible
+      (as in, bash compatible).
+    </td>
+  </tr>
+  <tr>
+    <td><code>tag_regex</code> <em>(Optional)</em></td>
+    <td>
+      If specified, the resource will only detect commits that have a tag matching
+      the expression that have been made against the <code>branch</code>. Patterns
+      are [grep](https://www.gnu.org/software/grep/manual/grep.html) compatible
+      (extended matching enabled, matches entire lines only). Ignored if
+      <code>tag_filter</code> is also specified.
+    </td>
+  </tr>
+  <tr>
+    <td><code>fetch_tags</code> <em>(Optional)</em></td>
+    <td>
+      If <code>true</code> the flag <code>--tags</code> will be used to fetch all
+      tags in the repository. If <code>false</code> no tags will be fetched.
+    </td>
+  </tr>
+  <tr>
+    <td><code>submodule_credentials</code> <em>(Optional)</em></td>
+    <td>
+      List of credentials for HTTP(s) auth when pulling/pushing private git
+      submodules which are not stored in the same git server as the container
+      repository.
+        <pre lang="yaml">
+submodule_credentials:
+- host: github.com
+  username: git-user
+  password: git-password
+- <another-configuration>
+        </pre>
 
-* `private_key`: *Optional.* Private key to use when pulling/pushing.
-    Example:
+    Note that <code>host</code> is specified with no protocol extensions.
+    </td>
+  </tr>
+  <tr>
+    <td><code>git_config</code> <em>(Optional)</em></td>
+    <td>
+      Specified as a list of pairs, <code>name</code> and <code>value</code>.
+      It will configure git global options, setting each name with each value.
 
-    ```yaml
-    private_key: |
-      -----BEGIN RSA PRIVATE KEY-----
-      MIIEowIBAAKCAQEAtCS10/f7W7lkQaSgD/mVeaSOvSF9ql4hf/zfMwfVGgHWjj+W
-      <Lots more text>
-      DWiJL+OFeg9kawcUL6hQ8JeXPhlImG6RTUffma9+iGQyyBMCGd1l
-      -----END RSA PRIVATE KEY-----
-    ```
+      This can be useful to set options like `credential.helper` or similar.
 
-* `private_key_user`: *Optional.* Enables setting User in the ssh config.
+      See the [<code>git-config(1)</code> manual page](https://www.kernel.org/pub/software/scm/git/docs/git-config.html)
+      for more information and documentation of existing git options.
+    </td>
+  </tr>
+  <tr>
+    <td><code>disable_ci_skip</code> <em>(Optional)</em></td>
+    <td>
+      Allows for commits that have been labeled with <code>[ci skip]</code> or
+      <code>[skip ci]</code> previously to be discovered by the resource.
+    </td>
+  </tr>
+  <tr>
+    <td><code>commit_verification_keys</code> <em>(Optional)</em></td>
+    <td>
+      Array of GPG public keys that the resource will check against to verify the
+      commit (details below).
+    </td>
+  </tr>
+  <tr>
+    <td><code>commit_verification_key_ids</code> <em>(Optional)</em></td>
+    <td>
+      Array of GPG public key ids that the resource will check against to verify the
+      commit (details below). The corresponding keys will be fetched from the key
+      server specified in <code>gpg_keyserver</code>. The ids can be short id, long
+      id or fingerprint.
+    </td>
+  </tr>
+  <tr>
+    <td><code>gpg_keyserver</code> <em>(Optional)</em></td>
+    <td>
+      GPG keyserver to download the public keys from. Defaults to
+      <code>hkp://keyserver.ubuntu.com/</code>.
+    </td>
+  </tr>
+  <tr>
+    <td><code>git_crypt_key</code> <em>(Optional)</em></td>
+    <td>
+      Base64 encoded [git-crypt](https://github.com/AGWA/git-crypt) key. Setting this
+      will unlock / decrypt the repository with <code>git-crypt</code>. To get the key simply
+      execute <code>git-crypt export-key -- - | base64</code> in an encrypted repository.
+    </td>
+  </tr>
+</tbody>
+</table>
 
-* `private_key_passphrase`: *Optional.* To unlock `private_key` if it is protected by a passphrase.
 
-* `forward_agent`: *Optional* Enables ForwardAgent SSH option when set to true. Useful when using proxy/jump hosts. Defaults to false.
-
-* `username`: *Optional.* Username for HTTP(S) auth when pulling/pushing.
-  This is needed when only HTTP/HTTPS protocol for git is available (which does not support private key auth)
-  and auth is required.
-
-* `password`: *Optional.* Password for HTTP(S) auth when pulling/pushing.
-
-* `paths`: *Optional.* If specified (as a list of glob patterns), only changes
-  to the specified files will yield new versions from `check`.
-
-* `ignore_paths`: *Optional.* The inverse of `paths`; changes to the specified
-  files are ignored.
-
-  Note that if you want to push commits that change these files via a `put`,
-  the commit will still be "detected", as [`check` and `put` both introduce
-  versions](https://github.com/concourse/concourse/issues/534).
-  To avoid this you should define a second resource that you use for commits
-  that change files that you don't want to feed back into your pipeline - think
-  of one as read-only (with `ignore_paths`) and one as write-only (which
-  shouldn't need it).
-
-* `skip_ssl_verification`: *Optional.* Skips git ssl verification by exporting
-  `GIT_SSL_NO_VERIFY=true`.
-
-* `tag_filter`: *Optional.* If specified, the resource will only detect commits
-  that have a tag matching the expression that have been made against
-  the `branch`. Patterns are [glob(7)](http://man7.org/linux/man-pages/man7/glob.7.html)
-  compatible (as in, bash compatible).
-
-* `tag_regex`: *Optional.* If specified, the resource will only detect commits
-  that have a tag matching the expression that have been made against
-  the `branch`. Patterns are [grep](https://www.gnu.org/software/grep/manual/grep.html)
-  compatible (extended matching enabled, matches entire lines only). Ignored if
-  `tag_filter` is also specified.
-
-* `fetch_tags`: *Optional.* If `true` the flag `--tags` will be used to fetch
-  all tags in the repository. If `false` no tags will be fetched.
-
-* `submodule_credentials`: *Optional.* List of credentials for HTTP(s) auth when pulling/pushing private git submodules which are not stored in the same git server as the container repository.
-    Example:
-
-    ```
-    submodule_credentials:
-    - host: github.com
-      username: git-user
-      password: git-password
-    - <another-configuration>
-    ```
-
-    Note that `host` is specified with no protocol extensions.
-
-* `git_config`: *Optional.* If specified as (list of pairs `name` and `value`)
-  it will configure git global options, setting each name with each value.
-
-  This can be useful to set options like `credential.helper` or similar.
-
-  See the [`git-config(1)` manual page](https://www.kernel.org/pub/software/scm/git/docs/git-config.html)
-  for more information and documentation of existing git options.
-
-* `disable_ci_skip`: *Optional.* Allows for commits that have been labeled with `[ci skip]` or `[skip ci]`
-   previously to be discovered by the resource.
-
-* `commit_verification_keys`: *Optional.* Array of GPG public keys that the
-  resource will check against to verify the commit (details below).
-
-* `commit_verification_key_ids`: *Optional.* Array of GPG public key ids that
-  the resource will check against to verify the commit (details below). The
-  corresponding keys will be fetched from the key server specified in
-  `gpg_keyserver`. The ids can be short id, long id or fingerprint.
-
-* `gpg_keyserver`: *Optional.* GPG keyserver to download the public keys from.
-  Defaults to `hkp://keyserver.ubuntu.com/`.
-
-* `git_crypt_key`: *Optional.* Base64 encoded
-  [git-crypt](https://github.com/AGWA/git-crypt) key. Setting this will
-  unlock / decrypt the repository with `git-crypt`. To get the key simply
-  execute `git-crypt export-key -- - | base64` in an encrypted repository.
 
 * `https_tunnel`: *Optional.* Information about an HTTPS proxy that will be used to tunnel SSH-based git commands over.
   Has the following sub-properties:
