@@ -210,41 +210,66 @@ submodule_credentials:
       execute <code>git-crypt export-key -- - | base64</code> in an encrypted repository.
     </td>
   </tr>
+  <tr>
+    <td><code>https_tunnel</code> <em>(Optional)</em></td>
+    <td>
+      Information about an HTTPS proxy that will be used to tunnel SSH-based git
+      commands over. Has the following sub-properties:
+      <ul>
+      <li><code>proxy_host</code>: <em>(Required)</em> The host name or IP of the proxy server</li>
+      <li><code>proxy_port</code>: <em>(Required)</em> The proxy server's listening port</li>
+      <li><code>proxy_user</code>: <em>(Optional)</em> If the proxy requires authentication, use this username</li>
+      <li><code>proxy_password</code>: <em>(Optional)</em> If the proxy requires authenticate,
+          use this password</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td><code>commit_filter</code> <em>(Optional)</em></td>
+    <td>
+      Object containing commit message filters. Has the following sub-properties:
+      <ul>
+      <li><code>exclude</code>: <em>(Optional)</em> Array containing strings that should
+      cause a commit to be skipped
+      <li><code>include</code>: <em>(Optional)</em> Array containing strings that
+        <em>MUST</em> be included in commit messages for the commit to not be
+        skipped
+      </ul>
+
+      <strong>Note</strong> <em>You must escape any regex sensitive characters,
+      since the string is used as a regex filter.</em> For example, using
+      <code>[skip deploy]</code> or <code>[deploy skip]</code> to skip
+      non-deployment related commits in a deployment pipeline:
+
+      <pre lang="yaml">
+commit_filter:
+  exclude: ["\\[skip deploy\\]", "\\[deploy skip\\]"]
+      </pre>
+    </td>
+  </tr>
+  <tr>
+    <td><code>version_depth</code> <em>(Optional)</em></td>
+    <td>
+      The number of versions to return when performing a check.
+    </td>
+  </tr>
+  <tr>
+    <td><code>search_remote_refs</code> <em>(Optional)</em></td>
+    <td>
+      True to search remote refs for the input version when checking out during
+      the get step. This can be useful during the <code>get</code> step after a
+      <code>put</code> step for unconventional workflows. One example workflow
+      is the <code>refs/for/<branch></code> workflow used by gerrit which
+      'magically' creates a <code>refs/changes/nnn</code> reference instead of
+      the straight forward <code>refs/for/<branch></code> reference that a git
+      remote would usually create. See also <code>out
+      params.refs_prefix</code>.
+    </td>
+  </tr>
 </tbody>
 </table>
 
 
-
-* `https_tunnel`: *Optional.* Information about an HTTPS proxy that will be used to tunnel SSH-based git commands over.
-  Has the following sub-properties:
-  * `proxy_host`: *Required.* The host name or IP of the proxy server
-  * `proxy_port`: *Required.* The proxy server's listening port
-  * `proxy_user`: *Optional.* If the proxy requires authentication, use this username
-  * `proxy_password`: *Optional.* If the proxy requires authenticate,
-      use this password
-
-* `commit_filter`: *Optional.* Object containing commit message filters
-  * `exclude`: *Optional.* Array containing strings that should
-    cause a commit to be skipped
-  * `include`: *Optional.* Array containing strings that
-    *MUST* be included in commit messages for the commit to not be
-    skipped
-
-  **Note**: *You must escape any regex sensitive characters, since the string is used as a regex filter.*  
-  For example, using `[skip deploy]` or `[deploy skip]` to skip non-deployment related commits in a deployment pipeline:
-
-  ```yaml
-  commit_filter:
-    exclude: ["\\[skip deploy\\]", "\\[deploy skip\\]"]
-  ```
-
-* `version_depth`: *Optional.* The number of versions to return when performing a check
-
-* `search_remote_refs`: *Optional.* True to search remote refs for the input version when checking out during the get step.
-    This can be useful during the `get` step after a `put` step for unconventional workflows. One example workflow is the
-    `refs/for/<branch>` workflow used by gerrit which 'magically' creates a `refs/changes/nnn` reference instead
-    of the straight forward `refs/for/<branch>` reference that a git remote would usually create.
-    See also `out params.refs_prefix`.
 
 ### Example
 
